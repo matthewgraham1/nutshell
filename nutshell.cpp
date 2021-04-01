@@ -4,7 +4,7 @@
 #include "tokens.h"
 
 extern char* yytext;
-extern char* yyword; // replace this usage with yylword once yacc is used
+extern std::string yyword; // replace this usage with yylword once yacc is used
 int yylex(void);
 extern FILE* yyin;
 
@@ -18,8 +18,7 @@ handle_line()
             exit(0);
 
         if (token == TOK_Word) {
-            printf("Word is: %s\n", yyword);
-            free(yyword);
+            printf("Word is: %s\n", yyword.c_str());
         } else
             printf("Token matched is: %u\n", token);
     } while (token != '\n');

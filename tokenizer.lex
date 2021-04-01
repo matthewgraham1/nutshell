@@ -1,16 +1,11 @@
+%option noyywrap
 %{
+#include <string>
 #include "tokens.h"
 
-char buf[1024];
-char* yyword;
+std::string yyword_builder;
+std::string yyword;
 
-enum Token
-construct_word()
-{
-    *yyword = '\0';
-    yyword = strdup(buf);
-    return TOK_Word;
-}
 %}
 
 %x STRING
@@ -21,23 +16,25 @@ construct_word()
 [&<>|\n] { return *yytext; }
 <<EOF>> { exit(1); /* return EOF; exit maybe? */ }
 
-\" { BEGIN STRING; yyword = buf;}
-<STRING>\\\" { *yyword++ = '"'; }
+\" { BEGIN STRING; }
+<STRING>\\\" { yyword_builder.push_back('"'); }
 <STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
-    return construct_word();
+    yyword = move(yyword_builder);
+    return TOK_Word;
 }
-<STRING>. { *yyword++ = *yytext; }
+<STRING>. { yyword_builder.push_back(*yytext); }
 
-\\[|<>&"] { BEGIN WORD; yyword = buf; *yyword++ = yytext[1]; }
-[^ \t\n] { BEGIN WORD; yyword = buf; *yyword++ = *yytext; }
-<WORD>\\[|<>&"] { *yyword++ = yytext[1]; }
+\\[|<>&"] { BEGIN WORD; yyword_builder.push_back(yytext[1]); }
+[^ \t\n] { BEGIN WORD; yyword_builder.push_back(*yytext); }
+<WORD>\\[|<>&"] { yyword.push_back(yytext[1]); }
 <WORD>[ \t\n|<>&"] {
     BEGIN 0;
-    yyless(0); // throws the matched character back to be lexed again in the INITIAL state.
-    return construct_word();
+    yyless(0);
+    yyword = move(yyword_builder);
+    return TOK_Word;
 }
-<WORD>. { *yyword++ = *yytext; }
+<WORD>. { yyword_builder.push_back(*yytext); }
 
 %%
