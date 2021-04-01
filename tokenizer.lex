@@ -18,12 +18,8 @@ construct_word()
 
 %%
 
-\n { return TOK_Newline; }
-& { return TOK_Ampersand; }
-[<] { return TOK_LeftBracket; }
-[>] { return TOK_RightBracket; }
-[|] { return TOK_Pipe; }
-<<EOF>> { return TOK_EOF; }
+[&<>|\n] { return *yytext; }
+<<EOF>> { exit(1); /* return EOF; exit maybe? */ }
 
 \" { BEGIN STRING; yyword = buf;}
 <STRING>\\\" { *yyword++ = '"'; }
