@@ -18,7 +18,7 @@ std::string yyword;
 
 \" { BEGIN STRING; }
 <STRING>\\\" { yyword_builder.push_back('"'); }
-<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; return '\n'; /* How should an unterminated quote be punished if at all? */ }
+<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
     yyword = move(yyword_builder);
