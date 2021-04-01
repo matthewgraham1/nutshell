@@ -1,15 +1,15 @@
-CC=/usr/bin/cc
+CC=/usr/bin/g++
 
 all: nutshell
 
-lex.yy.c: tokenizer.lex
-	flex tokenizer.lex
+lex.yy.cpp: tokenizer.lex
+	flex -o lex.yy.cpp tokenizer.lex
 
-nutshell-lexer.o: lex.yy.c tokens.h
-	$(CC) -c -o nutshell-lexer.o lex.yy.c
+nutshell-lexer.o: lex.yy.cpp tokens.h
+	$(CC) -g -c -o nutshell-lexer.o lex.yy.cpp -O2
 
-nutshell.o: nutshell.c tokens.h
-	$(CC) -g -c nutshell.c
+nutshell.o: nutshell.cpp tokens.h
+	$(CC) -g -c nutshell.cpp -O2
 
 nutshell: nutshell-lexer.o nutshell.o
-	$(CC) -o nutshell nutshell.o nutshell-lexer.o -lm -lfl
+	$(CC) -o nutshell nutshell.o nutshell-lexer.o -lm
