@@ -23,7 +23,7 @@ construct_word()
 
 \" { BEGIN STRING; yyword = buf;}
 <STRING>\\\" { *yyword++ = '"'; }
-<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; return TOK_Newline; /* How should an unterminated quote be punished if at all? */ }
+<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
     return construct_word();
