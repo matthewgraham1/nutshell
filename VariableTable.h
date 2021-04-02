@@ -12,5 +12,6 @@ public:
     void print() const;
     virtual ~VariableTable() = 0;
 protected:
+    VariableTable() { };
     std::map<std::string, std::string> m_table;
 };
