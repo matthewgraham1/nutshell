@@ -10,7 +10,7 @@ public:
 private:
     EnvTable()
     {
-        m_table.insert({ "PATH", ".:/bin" });
-        m_table.insert({ "HOME", getenv("HOME") });
+        set("PATH", ".:/bin");
+        set("HOME", getenv("HOME"));
     }
 };
