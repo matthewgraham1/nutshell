@@ -9,9 +9,6 @@ lex.yy.cpp: lexer.l
 lexer.o: lex.yy.cpp tokens.h
 	$(CXX) $(CXX_FLAGS) -c -o lexer.o lex.yy.cpp
 
-VariableTable.o: VariableTable.cpp VariableTable.h
-	$(CXX) $(CXX_FLAGS) -c VariableTable.cpp
-
 EnvTable.o: EnvTable.cpp EnvTable.h VariableTable.h
 	$(CXX) $(CXX_FLAGS) -c EnvTable.cpp
 
@@ -21,5 +18,5 @@ AliasTable.o: AliasTable.cpp AliasTable.h VariableTable.h
 nutshell.o: nutshell.cpp tokens.h
 	$(CXX) $(CXX_FLAGS) -c nutshell.cpp
 
-nutshell: lexer.o nutshell.o EnvTable.o AliasTable.o VariableTable.o 
-	$(CXX) -o nutshell nutshell.o lexer.o EnvTable.o VariableTable.o AliasTable.o -lm
+nutshell: lexer.o nutshell.o EnvTable.o AliasTable.o #VariableTable.o 
+	$(CXX) -o nutshell nutshell.o lexer.o EnvTable.o AliasTable.o -lm
