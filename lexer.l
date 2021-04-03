@@ -1,6 +1,7 @@
 %option noyywrap
 %option stack
 %{
+#include <pwd.h>
 #include <string>
 #include "EnvTable.h"
 #include "tokens.h"
@@ -17,6 +18,33 @@ void unput_string(const std::string& str)
 {
     for (int i = str.length() - 1; i >= 0; i--)
 	 unput(str[i]);
+}
+
+void expand_tilda_if_at_beginning(std::string& path)
+{
+std::string substring;
+if (path.length() == 0)
+    return;
+if (path[0] != '~')
+    return;
+int i;
+for (i = 1; i < path.length(); i++) {
+    if (path[i] == '/')
+        break;
+    substring.push_back(path[i]);
+}
+if (substring.length()) {
+    auto* user = getpwnam(substring.c_str());
+    if (user)
+        substring = user->pw_dir;
+    else
+	substring = "";
+} else
+    substring = EnvTable::the().get("HOME");
+std::string mediator = substring;
+for (; i < path.length(); i++)
+    mediator.push_back(path[i]);
+path = mediator;
 }
 
 %}
@@ -47,6 +75,7 @@ void unput_string(const std::string& str)
 <WORD>[ \t\n|<>&"] {
     BEGIN 0;
     yyless(0);
+    expand_tilda_if_at_beginning(yyword_builder);
     yyword = move(yyword_builder);
     return TOK_Word;
 }
@@ -58,4 +87,5 @@ void unput_string(const std::string& str)
     variable.clear();
 }
 <VARIABLE>. { variable.push_back(*yytext); }
+
 %%
