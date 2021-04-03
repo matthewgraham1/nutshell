@@ -1,20 +1,35 @@
 %option noyywrap
+%option stack
 %{
 #include <string>
+#include "EnvTable.h"
 #include "tokens.h"
+
+int variable_caller;
 
 std::string yyword_builder;
 std::string yyword;
+std::string variable;
+
+static void yyunput(int, char*);
+
+void unput_string(const std::string& str)
+{
+    for (int i = str.length() - 1; i >= 0; i--)
+	 unput(str[i]);
+}
 
 %}
 
 %x STRING
 %x WORD
+%x VARIABLE
 
 %%
 
 [&<>|\n] { return *yytext; }
-<<EOF>> { exit(1); /* return EOF; exit maybe? */ }
+<<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); return TOK_EOF;/* return EOF; exit maybe? */ }
+<*>\$\{ { yy_push_state(VARIABLE); }
 
 \" { BEGIN STRING; }
 <STRING>\\\" { yyword_builder.push_back('"'); }
@@ -37,4 +52,10 @@ std::string yyword;
 }
 <WORD>. { yyword_builder.push_back(*yytext); }
 
+<VARIABLE>\} {
+    yy_pop_state();
+    unput_string(EnvTable::the().get(variable));
+    variable.clear();
+}
+<VARIABLE>. { variable.push_back(*yytext); }
 %%
