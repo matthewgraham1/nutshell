@@ -13,6 +13,8 @@ std::string yyword_builder;
 std::string yyword;
 std::string variable;
 
+unsigned word_count = 0;
+
 static void yyunput(int, char*);
 
 void unput_string(const std::string& str)
@@ -56,8 +58,8 @@ void expand_tilda_if_at_beginning(std::string& path)
 
 %%
 
-[&<>|\n] { return *yytext; }
-<<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); return TOK_EOF;/* return EOF; exit maybe? */ }
+[&<>|\n] { word_count = 0; return *yytext; }
+<<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); return TOK_EOF; }
 <*>\$\{ { yy_push_state(VARIABLE); }
 
 \" { BEGIN STRING; }
@@ -66,7 +68,13 @@ void expand_tilda_if_at_beginning(std::string& path)
 <STRING>\" {
     BEGIN 0;
     yyword = move(yyword_builder);
-    return TOK_Word;
+    auto alias = AliasTable::the().get(yyword);
+    if (word_count + 1 == 1 && alias != yyword) {
+        unput_string(alias);
+    } else {
+        ++word_count;
+        return TOK_Word;
+    }
 }
 <STRING>. { yyword_builder.push_back(*yytext); }
 
@@ -79,9 +87,10 @@ void expand_tilda_if_at_beginning(std::string& path)
     expand_tilda_if_at_beginning(yyword_builder);
     yyword = move(yyword_builder);
     auto alias = AliasTable::the().get(yyword);
-    if (alias != yyword) {
+    if (word_count + 1 == 1 && alias != yyword) {
         unput_string(alias);
     } else {
+        ++word_count;
         return TOK_Word;
     }
 }
