@@ -13,14 +13,16 @@ std::string yyword_builder;
 std::string yyword;
 std::string variable;
 
-unsigned word_count = 0;
+unsigned word_count = 1;
 
+// for some reason this function is not declared in a way that lets 
+// functions in this file use it, so this manual declaration lets that happen.
 static void yyunput(int, char*);
 
 void unput_string(const std::string& str)
 {
     for (int i = str.length() - 1; i >= 0; i--)
-	 unput(str[i]);
+	    unput(str[i]);
 }
 
 void expand_tilda_if_at_beginning(std::string& path)
@@ -38,10 +40,7 @@ void expand_tilda_if_at_beginning(std::string& path)
     }
     if (substring.length()) {
         auto* user = getpwnam(substring.c_str());
-        if (user)
-            substring = user->pw_dir;
-        else
-            substring = "";
+        substring = user ? user->pw_dir : "";
     } else
         substring = EnvTable::the().get("HOME");
     std::string mediator = move(substring);
@@ -59,7 +58,7 @@ void expand_tilda_if_at_beginning(std::string& path)
 %%
 
 [&<>|\n] { word_count = 0; return *yytext; }
-<<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); return TOK_EOF; }
+<*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
 
 \" { BEGIN STRING; }
@@ -69,7 +68,7 @@ void expand_tilda_if_at_beginning(std::string& path)
     BEGIN 0;
     yyword = move(yyword_builder);
     auto alias = AliasTable::the().get(yyword);
-    if (word_count + 1 == 1 && alias != yyword) {
+    if (word_count == 1 && alias != yyword) {
         unput_string(alias);
     } else {
         ++word_count;
@@ -87,7 +86,7 @@ void expand_tilda_if_at_beginning(std::string& path)
     expand_tilda_if_at_beginning(yyword_builder);
     yyword = move(yyword_builder);
     auto alias = AliasTable::the().get(yyword);
-    if (word_count + 1 == 1 && alias != yyword) {
+    if (word_count == 1 && alias != yyword) {
         unput_string(alias);
     } else {
         ++word_count;
