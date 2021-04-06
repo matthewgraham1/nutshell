@@ -13,6 +13,7 @@ std::string yyword_builder;
 std::string yyword;
 std::string variable;
 
+unsigned line_count = 1;
 unsigned word_count = 1;
 
 // for some reason this function is not declared in a way that lets 
@@ -57,13 +58,14 @@ void expand_tilda_if_at_beginning(std::string& path)
 
 %%
 
-[&<>|\n] { word_count = 0; return *yytext; }
+[&<>|] { word_count = 0; return *yytext; }
+[\n] { word_count = 0; ++line_count; return *yytext; } 
 <*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
 
 \" { BEGIN STRING; }
 <STRING>\\\" { yyword_builder.push_back('"'); }
-<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); return '\n'; /* How should an unterminated quote be punished if at all? */ }
+<STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
     yyword = move(yyword_builder);
