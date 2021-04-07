@@ -30,13 +30,6 @@ void Command::add_command(const Node& command)
 
 int Command::run()
 {
-    /*
-    add_command({ "/usr/bin/ls", { "-l" }, "", "" });
-    add_command({ "/usr/bin/grep", { "C" }, "", "" });
-    add_command({ "/usr/bin/wc", { "-l" }, "", "" });
-    */
-    add_command({ "printenv", {  }, "", "" });
-    add_command({ "/usr/bin/wc", { "-l" }, "", "" });
     if (!m_commands.size())
         return 0;
     m_pipes = (int**)malloc((m_commands.size() - 1) * sizeof(int*));
@@ -57,10 +50,8 @@ int Command::run()
             if (i + 1 != m_commands.size() - 1) // If not the last one
                 run(*node, m_pipes[i][0], m_pipes[i + 1][1]);
             else {
-                printf("I happen!\n");
                 int last_out_fd = 1;
                 if (node->output_file.length()) {
-                printf("%u size of output_file is\n", node->output_file.length());
                     last_out_fd = open(node->output_file.c_str(), O_WRONLY);
                     if (last_out_fd < 0) {
                         perror("open");
@@ -73,12 +64,14 @@ int Command::run()
         }
     }
     if (!should_run_in_background()) {
-        waitpid(-1, nullptr, 0);
+        while (wait(nullptr) > 0);
     }
     for (int i = 0; i < m_commands.size() - 1; i++) {
         free(m_pipes[i]);
     }
     free(m_pipes);
+    fflush(stdout);
+    fflush(stdin);
     return 0;
 }
 int Command::run(const Node& command_node, int read_from, int write_to)
@@ -123,7 +116,7 @@ int Command::run(const Node& command_node, int read_from, int write_to)
         }
         execv(command_node.name.c_str(), arguments);
         perror("execv");
-        return 1;
+        exit(1);
     }
     if (read_from != 0)
         close(read_from);
