@@ -30,13 +30,17 @@ void Command::add_command(const Node& command)
 
 int Command::run()
 {
+    /*
     add_command({ "/usr/bin/ls", { "-l" }, "", "" });
     add_command({ "/usr/bin/grep", { "C" }, "", "" });
-    add_command({ "/usr/bin/wc", { "l" }, "", "" });
+    add_command({ "/usr/bin/wc", { "-l" }, "", "" });
+    */
+    add_command({ "printenv", {  }, "", "" });
+    add_command({ "/usr/bin/wc", { "-l" }, "", "" });
     if (!m_commands.size())
         return 0;
     m_pipes = (int**)malloc((m_commands.size() - 1) * sizeof(int*));
-    for (int i = 0; i < m_commands.size(); i++) {
+    for (int i = 0; i < m_commands.size() - 1; i++) {
         int* p = (int*)malloc(2 * sizeof(int));
         pipe(p);
         m_pipes[i] = p;
@@ -71,7 +75,10 @@ int Command::run()
     if (!should_run_in_background()) {
         waitpid(-1, nullptr, 0);
     }
-    printf("I get here!\n");
+    for (int i = 0; i < m_commands.size() - 1; i++) {
+        free(m_pipes[i]);
+    }
+    free(m_pipes);
     return 0;
 }
 int Command::run(const Node& command_node, int read_from, int write_to)
@@ -106,7 +113,7 @@ int Command::run(const Node& command_node, int read_from, int write_to)
             close(p[1]);
         }
         if (builtin_res != BuiltinCommandTable::the().internal_table().end()) [[unlikely]] {
-            return builtin_res->second(command_node.arguments);
+            exit(builtin_res->second(command_node.arguments));
         }
         int i = 0;
         char** arguments = (char**)calloc(command_node.arguments.size() + 2, sizeof(char*));
@@ -138,7 +145,7 @@ BuiltinCommandTable::BuiltinCommandTable()
             return 0;
         } });
     m_builtin_table.insert({ string("alias"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 0 || arguments.size() != 2) {
+            if (arguments.size() != 0 && arguments.size() != 2) {
                 fprintf(stderr, "alias: takes either 0 or 2 args\n");
                 return 1;
             }
@@ -180,7 +187,7 @@ BuiltinCommandTable::BuiltinCommandTable()
             return 0;
         } });
     m_builtin_table.insert({ string("cd"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 0 || arguments.size() != 1) {
+            if (arguments.size() != 0 && arguments.size() != 1) {
                 fprintf(stderr, "cd: takes 1 argument\n");
                 return 1;
             }
