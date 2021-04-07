@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <map>
 
 class Command {
 public:
@@ -11,24 +12,28 @@ public:
     struct Node {
         std::string name;
         std::vector<std::string> arguments;
-        std::string take_from_file; // command < file.
-        std::string redirect_to; // command > file; support N>&M somehow?
+        std::string output_file;
+        std::string input_file;
     };
+    void add_command(const Node&);
     int run();
-    int run(const Node&);
+    int run(const Node&, int from, int to);
     void create_pipe_between(const Node&, const Node&);
 private:
-    list<Node> m_commands;
+    std::vector<int> m_pid_list;
+    std::list<Node> m_commands;
+    int** m_pipes;
     bool m_background { false };
 };
 
 class BuiltinCommandTable {
 public:
-    using BuiltinTableType = map<std::string, std::function<int(const std::vector<std::string>&)>;
-    static BuiltinTable& the();
-    int run(const std::string& builtin_name, vector<std::string>& arguments);
+    using BuiltinTableType = std::map<std::string, std::function<int(const std::vector<std::string>&)>>;
+    static BuiltinCommandTable& the();
+    const BuiltinTableType& internal_table() const { return m_builtin_table; }
+    int run(const std::string& builtin_name, const std::vector<std::string>& arguments);
 
-    inline BuiltinTableType::iterator get_if_exists(const std::string& name) { return m_builtin_table.find(name); }
+    inline BuiltinTableType::iterator get(const std::string& name) { return m_builtin_table.find(name); }
 private:
     BuiltinCommandTable();
     BuiltinTableType m_builtin_table;
