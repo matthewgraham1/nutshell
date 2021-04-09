@@ -40,25 +40,16 @@ int Command::run()
     }
     auto node = m_commands.begin();
     if (m_commands.size() == 1) {
-        int first_to_fd = node->output_file.length() ? open(node->output_file.c_str(), O_WRONLY) : 1;
-        run(*node, 0, first_to_fd);
+        run(*node, 0, 1);
     }
     else {
         run(*node++, 0, m_pipes[0][1]);
         unsigned i = 0;
         for (; node != m_commands.end(); ++node) {
-            if (i + 1 != m_commands.size() - 1) // If not the last one
+            if (i + 1 < m_commands.size() - 1) // If not the last one
                 run(*node, m_pipes[i][0], m_pipes[i + 1][1]);
             else {
-                int last_out_fd = 1;
-                if (node->output_file.length()) {
-                    last_out_fd = open(node->output_file.c_str(), O_WRONLY);
-                    if (last_out_fd < 0) {
-                        perror("open");
-                        return 1;
-                    }
-                }
-                run(*node, m_pipes[i][0], last_out_fd);
+                run(*node, m_pipes[i][0], 1);
             }
             ++i;
         }
@@ -67,6 +58,8 @@ int Command::run()
         while (wait(nullptr) > 0);
     }
     for (int i = 0; i < m_commands.size() - 1; i++) {
+        close(m_pipes[i][0]);
+        close(m_pipes[i][1]);
         free(m_pipes[i]);
     }
     free(m_pipes);
@@ -94,17 +87,96 @@ int Command::run(const Node& command_node, int read_from, int write_to)
         return pid;
     }
     if (!pid) {
+        if (command_node.output.size() > 2) {
+            fprintf(stderr, "Adding more than two redirections in a command block is pointless!\n");
+            exit(1);
+        }
+
+        // Beware ye who enter
+        bool has_set_2_to_1 = false;
+        bool has_set_1_to_2 = false;
+        if (!command_node.output.size()) {
+            dup2(write_to, 1);
+        } else {
+            for (auto& output : command_node.output) {
+                int from_fd;
+                if (output.from == "1" || output.from == "2") {
+                    from_fd = output.from[0] - '0';
+                } else if (output.from.length()) {
+                    fprintf(stderr, "Shell error: must either have 1, 2, or nothing before '>' token.\n");
+                    exit(1);
+                }
+                int to_fd = 1;
+                if (!output.to.length()) [[unlikely]] {
+                    fprintf(stderr, "shell error: must direct output to something\n");
+                    exit(1);
+                }
+                if (output.to.length() == 2 && output.to[0] == '&' && (output.to[1] == '1' || output.to[1] == '2')) {
+                    to_fd = output.to[1] - '0';
+                    printf("I am %s\n", command_node.name.c_str());
+                    printf("I print from %s to %s\n", output.from.c_str(), output.to.c_str());
+                    if (from_fd == 2 && to_fd == 1) {
+                        dup2(write_to, 2);
+                        dup2(write_to, 1);
+                        has_set_2_to_1 = true;
+                    } else if (from_fd == 1 && to_fd == 2) {
+                        dup2(2, 1);
+                        has_set_1_to_2 = true;
+                    } else {
+                        if (!has_set_1_to_2 && !has_set_2_to_1) {
+                            printf("Equality happens for %s\n", command_node.name.c_str());
+                            dup2(write_to, 1);
+                        }
+                    }
+                } else if (output.to.length()) {
+                    FILE* file_fd = fopen(output.to.c_str(), output.append ? "a" : "w");
+                    if (!file_fd) {
+                        perror("fopen");
+                        exit(1);
+                    }
+                    //chown(output.to.c_str(), getuid(), -1);
+                    if (has_set_2_to_1) {
+                        dup2(file_fd->_fileno, 1);
+                        dup2(file_fd->_fileno, 2);
+                    }
+                    else if (has_set_1_to_2) {
+                        if (output.from == "2") {
+                            dup2(file_fd->_fileno, 1);
+                            dup2(file_fd->_fileno, 2);
+                        } else { 
+                            // Undefined i guess?
+                        }
+                    }
+                    else {
+                        if (output.from == "2")
+                            dup2(file_fd->_fileno, 2);
+                        else if (output.from == "1")
+                            dup2(file_fd->_fileno, 1);
+                    }
+                    fclose(file_fd);
+                }
+            }
+        }
+        if (read_from == 0) {
+            if (command_node.input_file.length()) {
+                read_from = open(command_node.input_file.c_str(), O_RDONLY);
+                if (read_from < 0) {
+                    perror("open");
+                    exit(1);
+                }
+            }
+        }
         dup2(read_from, 0);
-        dup2(write_to, 1);
-        if (read_from != 0)
-            close(read_from);
-        if (write_to != 1 && write_to != 2)
-            close(write_to);
         for (int i = 0; i < m_commands.size() - 1; i++) {
             int* p = m_pipes[i];
             close(p[0]);
             close(p[1]);
         }
+        if (read_from != 0)
+            close(read_from);
+        if (write_to != 1 && write_to != 2)
+            close(write_to);
+
         if (builtin_res != BuiltinCommandTable::the().internal_table().end()) [[unlikely]] {
             exit(builtin_res->second(command_node.arguments));
         }

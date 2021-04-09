@@ -12,7 +12,12 @@ public:
     struct Node {
         std::string name;
         std::vector<std::string> arguments;
-        std::string output_file;
+        struct Output {
+            std::string from;
+            std::string to;
+            bool append { false };
+        };
+        std::vector<Output> output;
         std::string input_file;
     };
     void add_command(const Node&);
@@ -20,7 +25,6 @@ public:
     int run(const Node&, int from, int to);
     void create_pipe_between(const Node&, const Node&);
 private:
-    std::vector<int> m_pid_list;
     std::list<Node> m_commands;
     int** m_pipes;
     bool m_background { false };
