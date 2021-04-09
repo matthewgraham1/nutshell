@@ -69,6 +69,27 @@ int Command::run()
 }
 int Command::run(const Node& command_node, int read_from, int write_to)
 {
+    if (command_node.name == "bye") {
+        exit(0);
+    }
+    if (command_node.name == "cd") {
+        if (command_node.arguments.size() != 0 && command_node.arguments.size() != 1) {
+            fprintf(stderr, "cd: takes 1 or 0 argument\n");
+            return 1;
+        }
+        if (!command_node.arguments.size()) {
+            if (chdir(EnvTable::the().get("HOME").c_str()) == -1) {
+                fprintf(stderr, "cd: chdir() error: %s\n", strerror(errno));
+                return 1;
+            }
+            return 0;
+        }
+        if (chdir(command_node.arguments[0].c_str()) == -1) {
+            fprintf(stderr, "cd: chdir() error: %s\n", strerror(errno));
+            return 1;
+        }
+        return 0;
+    }
     auto builtin_res = BuiltinCommandTable::the().get(command_node.name); 
     if (builtin_res == BuiltinCommandTable::the().internal_table().end()) [[likely]] {
         struct stat file_stat;
@@ -175,7 +196,7 @@ int Command::run(const Node& command_node, int read_from, int write_to)
             close(write_to);
 
         if (builtin_res != BuiltinCommandTable::the().internal_table().end()) [[unlikely]] {
-            exit(builtin_res->second(command_node.arguments));
+            builtin_res->second(command_node.arguments);
         }
         int i = 0;
         char** arguments = (char**)calloc(command_node.arguments.size() + 2, sizeof(char*));
@@ -202,70 +223,47 @@ BuiltinCommandTable& BuiltinCommandTable::the()
 
 BuiltinCommandTable::BuiltinCommandTable()
 {
-    m_builtin_table.insert({ string("bye"), [](const vector<std::string>&) {
-            exit(0);
-            return 0;
-        } });
     m_builtin_table.insert({ string("alias"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 0 && arguments.size() != 2) {
                 fprintf(stderr, "alias: takes either 0 or 2 args\n");
-                return 1;
+                exit(1);
             }
             if (!arguments.size()) {
                 AliasTable::the().print();
-                return 0;
+                exit(0);
             }
             AliasTable::the().set(arguments[0], arguments[1]);
-            return 0;
+            exit(0);
         } });
     m_builtin_table.insert({ string("unalias"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 1) {
                 fprintf(stderr, "unalias: takes 1 argument\n");
-                return 1;
+                exit(1);
             }
             AliasTable::the().unset(arguments[0]);
-            return 0;
+            exit(0);
         } });
 
     m_builtin_table.insert({ string("printenv"), [](const vector<std::string>& arguments) {
             EnvTable::the().print();
-            return 0;
+            exit(0);
         } });
 
     m_builtin_table.insert({ string("setenv"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 2) {
                 fprintf(stderr, "setenv: takes 2 arguments\n");
-                return 1;
+                exit(1);
             }
             EnvTable::the().set(arguments[0], arguments[1]);
-            return 0;
+            exit(0);
         } });
     m_builtin_table.insert({ string("unsetenv"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 1) {
                 fprintf(stderr, "unsetenv: takes 1 argument\n");
-                return 1;
+                exit(1);
             }
             EnvTable::the().unset(arguments[0]);
-            return 0;
-        } });
-    m_builtin_table.insert({ string("cd"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 0 && arguments.size() != 1) {
-                fprintf(stderr, "cd: takes 1 argument\n");
-                return 1;
-            }
-            if (!arguments.size()) {
-                if (chdir(EnvTable::the().get("HOME").c_str()) == -1) {
-                    fprintf(stderr, "cd: chdir() error: %s\n", strerror(errno));
-                    return 1;
-                }
-                return 0;
-            }
-            if (chdir(arguments[0].c_str()) == -1) {
-                fprintf(stderr, "cd: chdir() error: %s\n", strerror(errno));
-                return 1;
-            }
-            fprintf(stderr, "cd: I should not get here!\n");
-            return 1;
+            exit(0);
         } });
 };
 
