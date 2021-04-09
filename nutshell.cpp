@@ -1,38 +1,24 @@
 #include <string>
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include "tokens.h"
+#include "parser.hh"
 
 extern char* yytext;
 extern std::string yyword; // replace this usage with yylword once yacc is used
 int yylex(void);
 extern FILE* yyin;
 
-void
-handle_line()
-{
-    int token;
-    do {
-        token = yylex();
-        if (token == EOF)
-            exit(0);
-
-        if (token == TOK_Word) {
-            printf("Word is: %s\n", yyword.c_str());
-        } else
-            printf("Token matched is: %u\n", token);
-    } while (token != '\n');
-}
-
 int
 nutshell()
 {
-    std::string str;
-    str.append(getenv("USER"));
-    while (1) {
-        printf("%s$ ", str.c_str());
-        handle_line();
-    }
+	int irrecoverable_status;
+	std::string str;
+	str.append(getenv("USER"));
+	while (1) {
+		printf("%s$ ", str.c_str());
+		std::cout << yyparse() << "\n";
+	}
 }
 
 int

@@ -3,6 +3,9 @@ CXX_FLAGS=--std=c++17 -O2 -g
 
 all: nutshell
 
+parser.cc: parser.y
+	bison -d parser.y -o parser.cc
+
 lex.yy.cpp: lexer.l
 	flex -o lex.yy.cpp lexer.l
 
@@ -21,5 +24,8 @@ Command.o: Command.cpp Command.h AliasTable.h EnvTable.h
 nutshell.o: nutshell.cpp tokens.h
 	$(CXX) $(CXX_FLAGS) -c nutshell.cpp
 
-nutshell: lexer.o nutshell.o EnvTable.o AliasTable.o Command.o
-	$(CXX) -o nutshell nutshell.o lexer.o EnvTable.o AliasTable.o Command.o -lm
+nutshell: parser.cc lexer.o nutshell.o EnvTable.o AliasTable.o Command.o
+	$(CXX) -o nutshell nutshell.o parser.cc lexer.o EnvTable.o AliasTable.o Command.o -lm
+
+clean:
+	rm *.o *.hh *.cc
