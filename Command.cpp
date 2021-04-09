@@ -113,8 +113,6 @@ int Command::run(const Node& command_node, int read_from, int write_to)
                 }
                 if (output.to.length() == 2 && output.to[0] == '&' && (output.to[1] == '1' || output.to[1] == '2')) {
                     to_fd = output.to[1] - '0';
-                    printf("I am %s\n", command_node.name.c_str());
-                    printf("I print from %s to %s\n", output.from.c_str(), output.to.c_str());
                     if (from_fd == 2 && to_fd == 1) {
                         dup2(write_to, 2);
                         dup2(write_to, 1);
@@ -124,7 +122,6 @@ int Command::run(const Node& command_node, int read_from, int write_to)
                         has_set_1_to_2 = true;
                     } else {
                         if (!has_set_1_to_2 && !has_set_2_to_1) {
-                            printf("Equality happens for %s\n", command_node.name.c_str());
                             dup2(write_to, 1);
                         }
                     }
