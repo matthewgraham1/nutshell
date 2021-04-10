@@ -9,7 +9,6 @@
 class Command {
 public:
     inline Command() { expand_PATH(); }
-    inline bool should_run_in_background() const { return m_background; }
     struct Node {
         std::string name;
         std::vector<std::string> arguments;
@@ -33,7 +32,6 @@ private:
     void expand_PATH();
     std::list<Node> m_commands;
     int** m_pipes;
-    bool m_background { false };
     std::vector<std::string> m_path;
 };
 

@@ -90,7 +90,6 @@ int Command::run(Command::RunIn run_in)
     fflush(stdout);
     fflush(stdin);
     m_commands.clear();
-    m_background = false;
     return 0;
 }
 bool file_exists(const std::string& path)
