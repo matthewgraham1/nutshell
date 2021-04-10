@@ -22,10 +22,14 @@ public:
         std::string input_file;
     };
     void add_command(const Node&);
-    int run();
-    int run(Node&, int from, int to);
+    enum RunIn {
+        Background,
+        Foreground,
+    };
+    int run(RunIn);
     void create_pipe_between(const Node&, const Node&);
 private:
+    int run(Node&, int from, int to);
     void expand_PATH();
     std::list<Node> m_commands;
     int** m_pipes;

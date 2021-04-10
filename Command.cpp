@@ -52,7 +52,7 @@ void Command::expand_PATH()
         m_path.push_back(dir);
 }
 
-int Command::run()
+int Command::run(Command::RunIn run_in)
 {
     if (!m_commands.size())
         return 0;
@@ -78,9 +78,9 @@ int Command::run()
             ++i;
         }
     }
-    if (!should_run_in_background()) {
+    if (run_in != Command::RunIn::Background)
         while (wait(nullptr) > 0);
-    }
+
     for (int i = 0; i < m_commands.size() - 1; i++) {
         close(m_pipes[i][0]);
         close(m_pipes[i][1]);

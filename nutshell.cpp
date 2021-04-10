@@ -26,11 +26,12 @@ int
 main()
 {
     yyin = stdin;
-    //Command command;
-    //command.add_command({ "printenv", { }, { {"1", "other_test", false}, {"2", "&1", false}}, ""});
-    //command.add_command({ "grep", {"bin"}, {}, ""});
-    //command.add_command({ "wc", {"-l"}, {{"1", "test_output", true}}, ""});
-    //command.run();
+    Command command;
+    // The final string argument is if there is an input file
+    command.add_command({ "printenv", { }, { {"1", "other_test", false /* true says append, false says don't append */}, {"2", "&1", false /* same here */}}, ""});
+    command.add_command({ "grep", {"bin"}, {}, ""});
+    command.add_command({ "wc", {"-l"}, {{"1", "test_output", true}}, ""});
+    command.run(Command::RunIn::Background);
     nutshell();
     return 0;
 }
