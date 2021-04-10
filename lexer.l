@@ -2,7 +2,9 @@
 %option stack
 %{
 #include <pwd.h>
+#include <unistd.h>
 #include <string>
+#include <filesystem>
 #include "EnvTable.h"
 #include "AliasTable.h"
 #include "parser.hh"
@@ -24,6 +26,27 @@ void unput_string(const std::string& str)
 {
     for (int i = str.length() - 1; i >= 0; i--)
 	    unput(str[i]);
+}
+
+void normalize_path_if_needed(std::string& path)
+{
+    if (!path.length()) {
+        return;
+    }
+    if (path[0] == '/') {
+        path = std::filesystem::path(std::move(path)).lexically_normal();
+        return;
+    }
+    if (path[0] != '.') {
+        return;
+    }
+    char cwd[1024];
+    getcwd(cwd, 1024);
+    std::string resolved_path;
+    resolved_path.append(cwd);
+    resolved_path.push_back('/');
+    resolved_path.append(path);
+    path = std::filesystem::path(std::move(resolved_path)).lexically_normal();
 }
 
 void expand_tilda_if_at_beginning(std::string& path)
@@ -68,7 +91,8 @@ void expand_tilda_if_at_beginning(std::string& path)
 <STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
-    yyword = move(yyword_builder);
+    normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
+    yyword = std::move(yyword_builder);
     auto alias = AliasTable::the().get(yyword);
     if (word_count == 1 && alias != yyword) {
         unput_string(alias);
@@ -86,7 +110,8 @@ void expand_tilda_if_at_beginning(std::string& path)
     BEGIN 0;
     yyless(0);
     expand_tilda_if_at_beginning(yyword_builder);
-    yyword = move(yyword_builder);
+    normalize_path_if_needed(yyword_builder);
+    yyword = std::move(yyword_builder);
     auto alias = AliasTable::the().get(yyword);
     if (word_count == 1 && alias != yyword) {
         unput_string(alias);
