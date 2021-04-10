@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include "Command.h"
 #include "parser.hh"
 
 extern char* yytext;
@@ -25,6 +26,11 @@ int
 main()
 {
     yyin = stdin;
+    //Command command;
+    //command.add_command({ "printenv", { }, { {"1", "other_test", false}, {"2", "&1", false}}, ""});
+    //command.add_command({ "grep", {"bin"}, {}, ""});
+    //command.add_command({ "wc", {"-l"}, {{"1", "test_output", true}}, ""});
+    //command.run();
     nutshell();
     return 0;
 }
