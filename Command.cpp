@@ -28,6 +28,30 @@ void Command::add_command(const Node& command)
     m_commands.push_back(command);
 }
 
+
+void normalize_path_if_needed(std::string& path);
+void expand_tilda_if_at_beginning(std::string& path);
+
+void Command::expand_PATH()
+{
+    m_path.clear();
+    std::string dir;
+    for (auto c : EnvTable::the().get("PATH")) {
+        if (c == ':') {
+            normalize_path_if_needed(dir);
+            expand_tilda_if_at_beginning(dir);
+            if (dir[dir.length() - 1] != '/')
+                dir.push_back('/');
+            m_path.push_back(dir);
+            dir.clear();
+            continue;
+        }
+        dir.push_back(c);
+    }
+    if (dir.length())
+        m_path.push_back(dir);
+}
+
 int Command::run()
 {
     if (!m_commands.size())
@@ -65,12 +89,70 @@ int Command::run()
     free(m_pipes);
     fflush(stdout);
     fflush(stdin);
+    m_commands.clear();
+    m_background = false;
     return 0;
 }
-int Command::run(const Node& command_node, int read_from, int write_to)
+bool file_exists(const std::string& path)
 {
+    struct stat file_stat;
+    if (stat(path.c_str(), &file_stat)) {
+        //fprintf(stderr, "File %s does not exist\n", command_node.name.c_str());
+        return false;
+    }
+    return true;
+}
+int file_exists_or_executable_or_error(const std::string& path)
+{
+    struct stat file_stat;
+    if (stat(path.c_str(), &file_stat)) {
+        fprintf(stderr, "File %s does not exist\n", path.c_str());
+        return 1;
+    }
+    if (!(file_stat.st_mode & S_IXUSR)) {
+        fprintf(stderr, "File %s is not executable\n", path.c_str());
+        return 1;
+    }
+    return 0;
+}
+int Command::run(Node& command_node, int read_from, int write_to)
+{
+    if (command_node.name == "setenv") { // this is all terrible but I am short on time
+        if (command_node.arguments.size() != 2) {
+            fprintf(stderr, "setenv: takes 2 arguments\n");
+            exit(1);
+        }
+        EnvTable::the().set(command_node.arguments[0], command_node.arguments[1]);
+        if (command_node.arguments[0] == "PATH")
+            expand_PATH();
+        return 0;
+    }
+    if (command_node.name == "unsetenv") {
+            if (command_node.arguments.size() != 1) {
+                fprintf(stderr, "unsetenv: takes 1 argument\n");
+                return 1;
+            }
+            EnvTable::the().unset(command_node.arguments[0]);
+            if (command_node.arguments[0] == "PATH") {
+                EnvTable::the().set("PATH", ".");
+                expand_PATH();
+            }
+            return 0;
+    }
     if (command_node.name == "bye") {
         exit(0);
+    }
+    if (command_node.name == "alias" && command_node.arguments.size() == 2) {
+        AliasTable::the().set(command_node.arguments[0], command_node.arguments[1]);
+        return 0;
+    }
+    if (command_node.name == "unalias") {
+        if (command_node.arguments.size() != 1) {
+            fprintf(stderr, "unalias: takes 1 argument\n");
+            return 1;
+        }
+        AliasTable::the().unset(command_node.arguments[0]);
+        return 0;
     }
     if (command_node.name == "cd") {
         if (command_node.arguments.size() != 0 && command_node.arguments.size() != 1) {
@@ -92,13 +174,20 @@ int Command::run(const Node& command_node, int read_from, int write_to)
     }
     auto builtin_res = BuiltinCommandTable::the().get(command_node.name); 
     if (builtin_res == BuiltinCommandTable::the().internal_table().end()) [[likely]] {
-        struct stat file_stat;
-        if (stat(command_node.name.c_str(), &file_stat)) {
-            fprintf(stderr, "File %s does not exist\n", command_node.name.c_str());
-            return 1;
+        std::string full_path;
+        if (command_node.name.length() && command_node.name[0] != '/') {
+            for (auto& dir : m_path) {
+                full_path.append(dir);
+                full_path.append(command_node.name);
+                if (!file_exists(full_path)) {
+                    full_path.clear();
+                    continue;
+                }
+                command_node.name = std::move(full_path);
+                break;
+            }
         }
-        if (!(file_stat.st_mode & S_IXUSR)) {
-            fprintf(stderr, "File %s is not executable\n", command_node.name.c_str());
+        if (file_exists_or_executable_or_error(command_node.name)) {
             return 1;
         }
     }
@@ -228,19 +317,7 @@ BuiltinCommandTable::BuiltinCommandTable()
                 fprintf(stderr, "alias: takes either 0 or 2 args\n");
                 exit(1);
             }
-            if (!arguments.size()) {
-                AliasTable::the().print();
-                exit(0);
-            }
-            AliasTable::the().set(arguments[0], arguments[1]);
-            exit(0);
-        } });
-    m_builtin_table.insert({ string("unalias"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 1) {
-                fprintf(stderr, "unalias: takes 1 argument\n");
-                exit(1);
-            }
-            AliasTable::the().unset(arguments[0]);
+            AliasTable::the().print();
             exit(0);
         } });
 
@@ -249,21 +326,5 @@ BuiltinCommandTable::BuiltinCommandTable()
             exit(0);
         } });
 
-    m_builtin_table.insert({ string("setenv"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 2) {
-                fprintf(stderr, "setenv: takes 2 arguments\n");
-                exit(1);
-            }
-            EnvTable::the().set(arguments[0], arguments[1]);
-            exit(0);
-        } });
-    m_builtin_table.insert({ string("unsetenv"), [](const vector<std::string>& arguments) {
-            if (arguments.size() != 1) {
-                fprintf(stderr, "unsetenv: takes 1 argument\n");
-                exit(1);
-            }
-            EnvTable::the().unset(arguments[0]);
-            exit(0);
-        } });
 };
 
