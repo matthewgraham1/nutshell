@@ -148,7 +148,7 @@ bool match_glob_if_exists(const std::string& word)
 %%
 
 [&<>|] { word_count = 1; return *yytext; }
-[\n] { word_count = 1; yyterminate(); return 1; }
+[\n] { word_count = 1; ++line_count; yyterminate(); return 1; }
 <*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
 
