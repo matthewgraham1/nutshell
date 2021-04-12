@@ -2,7 +2,10 @@
 %option stack
 %{
 #include <pwd.h>
+#include <unistd.h>
 #include <string>
+#include <fnmatch.h>
+#include <filesystem>
 #include "EnvTable.h"
 #include "AliasTable.h"
 #include "parser.hh"
@@ -24,6 +27,27 @@ void unput_string(const std::string& str)
 {
     for (int i = str.length() - 1; i >= 0; i--)
 	    unput(str[i]);
+}
+
+void normalize_path_if_needed(std::string& path)
+{
+    if (!path.length()) {
+        return;
+    }
+    if (path[0] == '/') {
+        path = std::filesystem::path(std::move(path)).lexically_normal();
+        return;
+    }
+    if (path[0] != '.') {
+        return;
+    }
+    char cwd[1024];
+    getcwd(cwd, 1024);
+    std::string resolved_path;
+    resolved_path.append(cwd);
+    resolved_path.push_back('/');
+    resolved_path.append(path);
+    path = std::filesystem::path(std::move(resolved_path)).lexically_normal();
 }
 
 void expand_tilda_if_at_beginning(std::string& path)
@@ -50,6 +74,71 @@ void expand_tilda_if_at_beginning(std::string& path)
     path = move(mediator);
 }
 
+bool is_glob(const std::string& word)
+{
+for (auto c : word) {
+if (c == '*' || c == '?') {
+return true;
+}
+}
+return false;
+}
+
+bool match_glob_if_exists(const std::string& word)
+{
+    if (!word.length())
+	return false;
+    std::string parent_directory;
+    std::string glob;
+    if (!is_glob(word)) {
+        return false;
+    }
+    if (word[0] == '/') {
+	std::string dir_name;
+	parent_directory.push_back('/');
+	bool glob_found = false;
+	for (char c : word) {
+	    if (c == '*' || c == '?') {
+		glob_found = true;
+		glob.append(dir_name);
+		glob.push_back(c);
+		dir_name.clear();
+		continue;
+	    }
+	    
+	    if (glob_found) {
+		if (c == '/') {
+		    break;
+		}
+		glob.push_back(c);
+	    }
+		    
+	    if (c == '/') {
+	        parent_directory.push_back(c);
+		parent_directory.append(dir_name);
+		dir_name.clear();
+		continue;
+	    }
+	    dir_name.push_back(c);
+	}
+    } else {
+	glob = word;
+	char cwd[1024];
+	getcwd(cwd, 1024);
+	parent_directory = cwd;
+    }
+    bool matched_at_least_one = false;
+    for (auto& file : std::filesystem::directory_iterator(parent_directory)) {
+        printf("Current file to be checked against %s: %s\n", glob.c_str(), file.path().filename().c_str());
+	if (!fnmatch(glob.c_str(), file.path().filename().c_str(), 0)) {
+	    unput_string(file.path());
+	    unput(' ');
+	    matched_at_least_one = true;
+	}
+    }
+    return matched_at_least_one;
+}
+
 %}
 
 %x STRING
@@ -59,7 +148,7 @@ void expand_tilda_if_at_beginning(std::string& path)
 %%
 
 [&<>|] { word_count = 0; return *yytext; }
-[\n] { word_count = 0; ++line_count; return *yytext; } 
+[\n] { yyterminate(); return 1; }
 <*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
 
@@ -68,13 +157,16 @@ void expand_tilda_if_at_beginning(std::string& path)
 <STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
-    yyword = move(yyword_builder);
-    auto alias = AliasTable::the().get(yyword);
-    if (word_count == 1 && alias != yyword) {
-        unput_string(alias);
-    } else {
-        ++word_count;
-        return TOK_Word;
+    normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
+    yyword = std::move(yyword_builder);
+    if (!match_glob_if_exists(yyword)) {
+	auto alias = AliasTable::the().get(yyword);
+	if (word_count == 1 && alias != yyword) {
+	    unput_string(alias);
+	} else {
+	    ++word_count;
+	    return TOK_Word;
+	}
     }
 }
 <STRING>. { yyword_builder.push_back(*yytext); }
@@ -86,13 +178,17 @@ void expand_tilda_if_at_beginning(std::string& path)
     BEGIN 0;
     yyless(0);
     expand_tilda_if_at_beginning(yyword_builder);
-    yyword = move(yyword_builder);
-    auto alias = AliasTable::the().get(yyword);
-    if (word_count == 1 && alias != yyword) {
-        unput_string(alias);
-    } else {
-        ++word_count;
-        return TOK_Word;
+    normalize_path_if_needed(yyword_builder);
+    yyword = std::move(yyword_builder);
+    if (!match_glob_if_exists(yyword)) {
+	auto alias = AliasTable::the().get(yyword);
+	if (word_count == 1 && alias != yyword) {
+	    unput_string(alias);
+	} else {
+		++word_count;
+		yylval.char_ptr_t = strdup(yyword.c_str());
+		return TOK_Word;
+	}
     }
 }
 <WORD>. { yyword_builder.push_back(*yytext); }

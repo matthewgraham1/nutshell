@@ -12,7 +12,6 @@ extern FILE* yyin;
 int
 nutshell()
 {
-	int irrecoverable_status;
 	std::string str;
 	str.append(getenv("USER"));
 	while (1) {
