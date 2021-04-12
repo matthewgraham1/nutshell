@@ -180,16 +180,20 @@ bool match_glob_if_exists(const std::string& word)
     expand_tilda_if_at_beginning(yyword_builder);
     normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
-    if (!match_glob_if_exists(yyword)) {
-	auto alias = AliasTable::the().get(yyword);
-	if (word_count == 1 && alias != yyword) {
-	    unput_string(alias);
-	} else {
-		++word_count;
-		yylval.char_ptr_t = strdup(yyword.c_str());
-		return TOK_Word;
-	}
+
+    //printf("%s\n", yyword.c_str());
+  if (!match_glob_if_exists(yyword)) {
+    auto alias = AliasTable::the().get(yyword);
+    if (word_count == 1 && alias != yyword) {
+        unput_string(alias);
+    } else {
+      ++word_count;
+      yylval.char_ptr_t = strdup(yyword.c_str());
+      return TOK_Word;
+        ++word_count;
+        return TOK_Word;
     }
+  }
 }
 <WORD>. { yyword_builder.push_back(*yytext); }
 
