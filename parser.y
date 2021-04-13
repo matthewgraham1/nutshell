@@ -1,118 +1,104 @@
 %{
+#include <iostream>
 #include <stdio.h>
 #include <vector>
 #include "Command.h"
-#include <string.h>
+#include <string>
+#include <vector>
 
 int yylex(void);
-
-Command command;
 
 void
 yyerror(const char* s)
 {
-	fprintf(stderr, "%s\n", s);
+	fprintf(stderr, "%s\n", *s);
 }
 
-char**
+std::vector<std::string>*
 create_s_list(void)
 {
 	
-	char** s_list = new char*[1];
-	s_list[0] = "\0";
+	std::vector<std::string>* s_list = new std::vector<std::string>(0);
 	return s_list;
 }
 
-char**
-append_s_list(char** s_list, char** stmt)
+std::vector<std::string>*
+append_s_list(std::vector<std::string>* s_list, std::vector<std::string>* stmt)
 {
-	int size = 0;
-        for(; s_list[size] != "\0"; ++size);
-	int stmt_size = 0;
-	for(; stmt[stmt_size] != "\0"; ++stmt_size);
-        char** ret_s_list = new char*[size+stmt_size+1];
-        for(int i=0; i < size; ++i)
-        {
-                ret_s_list[i] = s_list[i];
-        }
-        for(int i=size; i < size+stmt_size; ++i)
-        {
-                ret_s_list[i] = stmt[i];
-        }
-        ret_s_list[size+stmt_size] = "\0";
+        std::vector<std::string> new_s_list;
+	new_s_list.reserve(s_list->size() + stmt->size());
+        new_s_list.insert(new_s_list.end(), s_list->begin(), s_list->end());
+	new_s_list.insert(new_s_list.end(), stmt->begin(), stmt->end());
 	
-        return ret_s_list;
+        return &new_s_list;
 }
 
-char**
-append_s_list(char** s_list, char* word)
+std::vector<std::string>*
+append_s_list(std::vector<std::string>* s_list, std::string* word)
 {
-	int size = 0;
-	for(; s_list[size] != "\0"; ++size);
-	char** ret_s_list = new char*[++size+1];
-	for(int i=0; i < size-1; ++i)
-	{
-		ret_s_list[i] = s_list[i];
-	}
-	ret_s_list[size-1] = word;
-	ret_s_list[size] = "\0";
-	return ret_s_list;
+	(*s_list).push_back(*word);
+	return s_list;
 }
 
 void
-print_s_list(char** s_list)
+print_s_list(std::vector<std::string>* s_list)
 {
 	printf("Printing:\n");
-	for(int i = 0; s_list[i] != "\0"; ++i)
+	for(int i = 0; i < s_list->size(); ++i)
 	{
-		printf("%s\n", s_list[i]);
+		std::cout << (*s_list)[i] << " ";
 	}
+	std::cout << "\n";
 }
 
+std::vector<std::string>*
+execute_command(std::vector<std::string>* s_list)
+{
+	Command command = Command();
+	Command::Node node;
+	node.name = (*s_list)[0];
+	node.arguments.reserve(s_list->size() - 1);
+	node.arguments.insert(node.arguments.end(), s_list->begin() + 1, s_list->end());
+
+	command.add_command(node);
+}
 
 %}
 
 %union 
 {
 	int int_t;
-	char* char_ptr_t;
-	char** str_list_t;
+	const char *char_ptr_t;
+	std::string *string;
+	std::vector<std::string> *vector;
 }
 
 %define parse.error verbose
 
-%token <char_ptr_t> TOK_Pipe
-%token <char_ptr_t> TOK_LeftBracket
-%token <char_ptr_t> TOK_RightBracket
-%token <char_ptr_t> TOK_Backslash
-%token <char_ptr_t> TOK_Ampersand
-%token <char_ptr_t> TOK_Word
-%token <char_ptr_t> TOK_QuotedWord
-%token <char_ptr_t> TOK_EnvOpen
-%token <char_ptr_t> TOK_EnvClose
-%token <char_ptr_t> TOK_Newline
-%token <char_ptr_t> TOK_Whitespace
+%token <string> TOK_Pipe
+%token <string> TOK_LeftBracket
+%token <string> TOK_RightBracket
+%token <string> TOK_Backslash
+%token <string> TOK_Ampersand
+%token <string> TOK_Word
+%token <string> TOK_QuotedWord
+%token <string> TOK_EnvOpen
+%token <string> TOK_EnvClose
+%token <string> TOK_Newline
+%token <string> TOK_Whitespace
 
-%nterm <char_ptr_t> command
-%nterm <char_ptr_t> argument
-%nterm <str_list_t> stmt
-%nterm <str_list_t> s_list
+%nterm <string> argument
+%nterm <vector> stmt
 
 %%
 
-s_list	: /* empty */ { $$ = create_s_list(); }
-        | s_list stmt { $$ = append_s_list($1, $2); }
+stmt	: argument { $$ = create_s_list(); $$ = append_s_list($$, $1); }
+	| stmt argument { $$ = append_s_list($1, $2); }
+	| stmt '|' { $$ = execute_command($1); }
+	| stmt { $$ = execute_command($1); }
 	;
 
-stmt	: command { $$ = new char*[2]; $$[0] = $1; $$[1] = "\0"; printf("command\n"); }
-	| command argument { $$ = new char*[3]; $$[0] = $1; $$[1] = $2; $$[2] = "\0"; printf("command + arg\n"); }
-	| command argument argument { $$ = new char*[4]; $$[0] = $1; $$[1] = $2; $$[2] = $3; $$[3] = "\0"; printf("command + arg + arg\n"); }
-	;
-
-command	: TOK_Word { $$ = $1; }
-	;
-
-argument: TOK_Word { $$ = $1; }
+argument: TOK_Word
 	;
 
 %%
