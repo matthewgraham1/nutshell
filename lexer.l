@@ -4,6 +4,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <string>
+#include <vector>
 #include <fnmatch.h>
 #include <filesystem>
 #include "EnvTable.h"
@@ -188,8 +189,8 @@ bool match_glob_if_exists(const std::string& word)
         unput_string(alias);
     } else {
       ++word_count;
-      yylval.char_ptr_t = strdup(yyword.c_str());
-      return TOK_Word;
+      yylval.string = &yyword;
+	return TOK_Word;
         ++word_count;
         return TOK_Word;
     }

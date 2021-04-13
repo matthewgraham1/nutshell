@@ -464,6 +464,7 @@ char *yytext;
 #include <pwd.h>
 #include <unistd.h>
 #include <string>
+#include <vector>
 #include <fnmatch.h>
 #include <filesystem>
 #include "EnvTable.h"
@@ -599,9 +600,9 @@ bool match_glob_if_exists(const std::string& word)
     return matched_at_least_one;
 }
 
-#line 603 "lex.yy.cpp"
+#line 604 "lex.yy.cpp"
 
-#line 605 "lex.yy.cpp"
+#line 606 "lex.yy.cpp"
 
 #define INITIAL 0
 #define STRING 1
@@ -831,10 +832,10 @@ YY_DECL
 		}
 
 	{
-#line 148 "lexer.l"
+#line 149 "lexer.l"
 
 
-#line 838 "lex.yy.cpp"
+#line 839 "lex.yy.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -893,46 +894,46 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 150 "lexer.l"
+#line 151 "lexer.l"
 { word_count = 0; return *yytext; }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 151 "lexer.l"
+#line 152 "lexer.l"
 { yyterminate(); return 1; }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRING):
 case YY_STATE_EOF(WORD):
 case YY_STATE_EOF(VARIABLE):
-#line 152 "lexer.l"
+#line 153 "lexer.l"
 { fprintf(stderr, "Unexpected end of file!\n"); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 153 "lexer.l"
+#line 154 "lexer.l"
 { yy_push_state(VARIABLE); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 155 "lexer.l"
+#line 156 "lexer.l"
 { BEGIN STRING; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 156 "lexer.l"
+#line 157 "lexer.l"
 { yyword_builder.push_back('"'); }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 157 "lexer.l"
+#line 158 "lexer.l"
 { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 158 "lexer.l"
+#line 159 "lexer.l"
 {
     BEGIN 0;
     normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
@@ -950,55 +951,58 @@ YY_RULE_SETUP
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 172 "lexer.l"
+#line 173 "lexer.l"
 { yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 174 "lexer.l"
+#line 175 "lexer.l"
 { BEGIN WORD; yyword_builder.push_back(yytext[1]); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 175 "lexer.l"
+#line 176 "lexer.l"
 { BEGIN WORD; yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 176 "lexer.l"
+#line 177 "lexer.l"
 { yyword.push_back(yytext[1]); }
 	YY_BREAK
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 177 "lexer.l"
+#line 178 "lexer.l"
 {
     BEGIN 0;
     yyless(0);
     expand_tilda_if_at_beginning(yyword_builder);
     normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
+
     //printf("%s\n", yyword.c_str());
-    if (!match_glob_if_exists(yyword)) {
-	auto alias = AliasTable::the().get(yyword);
-	if (word_count == 1 && alias != yyword) {
-	    unput_string(alias);
-	} else {
-		++word_count;
-		yylval.char_ptr_t = strdup(yyword.c_str());
-		return TOK_Word;
-	}
+  if (!match_glob_if_exists(yyword)) {
+    auto alias = AliasTable::the().get(yyword);
+    if (word_count == 1 && alias != yyword) {
+        unput_string(alias);
+    } else {
+      ++word_count;
+      yylval.string = &yyword;
+	return TOK_Word;
+        ++word_count;
+        return TOK_Word;
     }
+  }
 }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 195 "lexer.l"
+#line 199 "lexer.l"
 { yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 197 "lexer.l"
+#line 201 "lexer.l"
 {
     yy_pop_state();
     unput_string(EnvTable::the().get(variable));
@@ -1007,15 +1011,15 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 202 "lexer.l"
+#line 206 "lexer.l"
 { variable.push_back(*yytext); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 204 "lexer.l"
+#line 208 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 1019 "lex.yy.cpp"
+#line 1023 "lex.yy.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2064,6 +2068,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 204 "lexer.l"
+#line 208 "lexer.l"
 
 
