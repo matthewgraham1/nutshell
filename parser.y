@@ -8,6 +8,12 @@
 
 int yylex(void);
 
+int
+yywrap(void)
+{
+	return 1;
+}
+
 void
 yyerror(const char* s)
 {
@@ -43,7 +49,6 @@ append_s_list(std::vector<std::string>* s_list, std::string* word)
 void
 print_s_list(std::vector<std::string>* s_list)
 {
-	printf("Printing:\n");
 	for(int i = 0; i < s_list->size(); ++i)
 	{
 		std::cout << (*s_list)[i] << " ";
@@ -51,16 +56,21 @@ print_s_list(std::vector<std::string>* s_list)
 	std::cout << "\n";
 }
 
-std::vector<std::string>*
+void
 execute_command(std::vector<std::string>* s_list)
 {
-	Command command = Command();
-	Command::Node node;
-	node.name = (*s_list)[0];
-	node.arguments.reserve(s_list->size() - 1);
-	node.arguments.insert(node.arguments.end(), s_list->begin() + 1, s_list->end());
+	std::vector<std::string> arguments;
+	for (int i = 1; i < s_list->size(); ++i) arguments.push_back((*s_list)[i]);
 
-	command.add_command(node);
+	Command command;
+	// The final string argument is if there is an input file
+	
+	//std::cout << "Command: " << s_list->front() << "\nArguments:";
+	
+	//print_s_list(&arguments);
+	
+	command.add_command({ s_list->front(), arguments, {}, ""});
+	command.run(Command::RunIn::Background);
 }
 
 %}
@@ -87,6 +97,8 @@ execute_command(std::vector<std::string>* s_list)
 %token <string> TOK_Newline
 %token <string> TOK_Whitespace
 
+%token <int> TOK_END
+
 %nterm <string> argument
 %nterm <vector> stmt
 
@@ -94,8 +106,7 @@ execute_command(std::vector<std::string>* s_list)
 
 stmt	: argument { $$ = create_s_list(); $$ = append_s_list($$, $1); }
 	| stmt argument { $$ = append_s_list($1, $2); }
-	| stmt '|' { $$ = execute_command($1); }
-	| stmt { $$ = execute_command($1); }
+	| stmt '\n' { execute_command($1); YYACCEPT; }
 	;
 
 argument: TOK_Word
