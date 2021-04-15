@@ -171,7 +171,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
         }
         return 0;
     }
-    auto builtin_res = BuiltinCommandTable::the().get(command_node.name); 
+    auto builtin_res = BuiltinCommandTable::the().get(command_node.name);
     if (builtin_res == BuiltinCommandTable::the().internal_table().end()) [[likely]] {
         std::string full_path;
         if (command_node.name.length() && command_node.name[0] != '/') {
