@@ -185,6 +185,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
                 expand_tilda_if_at_beginning(dir);
                 //normalize_path_if_needed(dir);
                 full_path.append(dir);
+                full_path.push_back('/');
                 full_path.append(command_node.name);
                 if (!file_exists(full_path)) {
                     full_path.clear();
