@@ -537,10 +537,10 @@ void expand_tilda_if_at_beginning(std::string& path)
 
 bool is_glob(const std::string& word)
 {
-for (auto c : word) {
-if (c == '*' || c == '?') {
-return true;
-}
+    for (auto c : word) {
+        if (c == '*' || c == '?') {
+            return true;
+    }
 }
 return false;
 }
@@ -560,42 +560,42 @@ bool match_glob_if_exists(const std::string& word)
 	bool glob_found = false;
 	for (char c : word) {
 	    if (c == '*' || c == '?') {
-		glob_found = true;
-		glob.append(dir_name);
-		glob.push_back(c);
-		dir_name.clear();
-		continue;
+            glob_found = true;
+            glob.append(dir_name);
+            glob.push_back(c);
+            dir_name.clear();
+            continue;
 	    }
 	    
 	    if (glob_found) {
-		if (c == '/') {
-		    break;
-		}
-		glob.push_back(c);
+            if (c == '/') {
+                break;
+            }
+            glob.push_back(c);
 	    }
 		    
 	    if (c == '/') {
 	        parent_directory.push_back(c);
-		parent_directory.append(dir_name);
-		dir_name.clear();
-		continue;
+            parent_directory.append(dir_name);
+            dir_name.clear();
+            continue;
 	    }
 	    dir_name.push_back(c);
 	}
     } else {
-	glob = word;
-	char cwd[1024];
-	getcwd(cwd, 1024);
-	parent_directory = cwd;
+        glob = word;
+        char cwd[1024];
+        getcwd(cwd, 1024);
+        parent_directory = cwd;
     }
     bool matched_at_least_one = false;
     for (auto& file : std::filesystem::directory_iterator(parent_directory)) {
         printf("Current file to be checked against %s: %s\n", glob.c_str(), file.path().filename().c_str());
-	if (!fnmatch(glob.c_str(), file.path().filename().c_str(), 0)) {
-	    unput_string(file.path());
-	    unput(' ');
-	    matched_at_least_one = true;
-	}
+        if (!fnmatch(glob.c_str(), file.path().filename().c_str(), 0)) {
+            unput_string(file.path());
+            unput(' ');
+            matched_at_least_one = true;
+        }
     }
     return matched_at_least_one;
 }
@@ -895,84 +895,84 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 151 "lexer.l"
-{ word_count = 0; return *yytext; }
+{ word_count = 1; return *yytext; }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
 #line 152 "lexer.l"
-{ return *yytext; }
+{ word_count = 1; line_count++; return *yytext; }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRING):
 case YY_STATE_EOF(WORD):
 case YY_STATE_EOF(VARIABLE):
-#line 153 "lexer.l"
+#line 154 "lexer.l"
 { fprintf(stderr, "Unexpected end of file!\n"); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 154 "lexer.l"
+#line 155 "lexer.l"
 { yy_push_state(VARIABLE); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 156 "lexer.l"
+#line 157 "lexer.l"
 { BEGIN STRING; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 157 "lexer.l"
+#line 158 "lexer.l"
 { yyword_builder.push_back('"'); }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 158 "lexer.l"
+#line 159 "lexer.l"
 { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 159 "lexer.l"
+#line 160 "lexer.l"
 {
     BEGIN 0;
     normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
     yyword = std::move(yyword_builder);
     if (!match_glob_if_exists(yyword)) {
-	auto alias = AliasTable::the().get(yyword);
-	if (word_count == 1 && alias != yyword) {
-	    unput_string(alias);
-	} else {
-	    ++word_count;
-	    return TOK_Word;
-	}
+        auto alias = AliasTable::the().get(yyword);
+        if (word_count == 1 && alias != yyword) {
+            unput_string(alias);
+        } else {
+            ++word_count;
+            return TOK_Word;
+        }
     }
 }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 173 "lexer.l"
+#line 174 "lexer.l"
 { yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 175 "lexer.l"
+#line 176 "lexer.l"
 { BEGIN WORD; yyword_builder.push_back(yytext[1]); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 176 "lexer.l"
+#line 177 "lexer.l"
 { BEGIN WORD; yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 177 "lexer.l"
+#line 178 "lexer.l"
 { yyword.push_back(yytext[1]); }
 	YY_BREAK
 case 12:
 /* rule 12 can match eol */
 YY_RULE_SETUP
-#line 178 "lexer.l"
+#line 179 "lexer.l"
 {
     BEGIN 0;
     yyless(0);
@@ -980,7 +980,6 @@ YY_RULE_SETUP
     normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
 
-    //printf("%s\n", yyword.c_str());
   if (!match_glob_if_exists(yyword)) {
     auto alias = AliasTable::the().get(yyword);
     if (word_count == 1 && alias != yyword) {
@@ -988,21 +987,19 @@ YY_RULE_SETUP
     } else {
       ++word_count;
       yylval.string = &yyword;
-	return TOK_Word;
-        ++word_count;
-        return TOK_Word;
+      return TOK_Word;
     }
   }
 }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 199 "lexer.l"
+#line 197 "lexer.l"
 { yyword_builder.push_back(*yytext); }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 201 "lexer.l"
+#line 199 "lexer.l"
 {
     yy_pop_state();
     unput_string(EnvTable::the().get(variable));
@@ -1011,15 +1008,15 @@ YY_RULE_SETUP
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 206 "lexer.l"
+#line 204 "lexer.l"
 { variable.push_back(*yytext); }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 208 "lexer.l"
+#line 206 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 1023 "lex.yy.cpp"
+#line 1020 "lex.yy.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2068,6 +2065,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 208 "lexer.l"
+#line 206 "lexer.l"
 
 

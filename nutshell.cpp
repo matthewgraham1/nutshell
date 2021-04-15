@@ -18,7 +18,6 @@ nutshell()
 	while (1) {
 		printf("%s$ ", str.c_str());
 		yyparse();
-		std::cout << "\n";
 	}
 }
 

@@ -7,6 +7,7 @@
 #include <vector>
 
 int yylex(void);
+Command command;
 
 int
 yywrap(void)
@@ -64,35 +65,24 @@ print_s_list(std::vector<std::string>* s_list)
 }
 
 void
-execute_command(std::vector<std::string>* s_chain, int run_in_background)
+add_command(std::vector<std::string>* s_list)
 {
-	if (!(s_chain)->size()) return;
+	if (!(s_list)->size()) return;
 
-	Command command;
-
-	std::string called_command;
+	std::string called_command = (*s_list)[0];
 	std::vector<std::string> arguments;
-	for (int j = 0; j < s_chain->size(); ++j)
-	{
-		called_command = (*s_chain)[j++];
-		arguments = {};
+	for (int i = 1; i < s_list->size(); ++i) arguments.push_back((*s_list)[i]);
 
-		for (int i = j; i < s_chain->size() && (*s_chain)[i] != "|"; ++i, ++j) arguments.push_back((*s_chain)[i]);
-		//if ((*s_chain)[j] == "|") ++j;
+	command.add_command({ called_command, arguments, {}, ""});
+}
 
-		// The final string argument is if there is an input file
-	
-		//std::cout << "Command: " << command << "\nArguments:";
-	
-		//print_s_list(&arguments);
-	
-		command.add_command({ called_command, arguments, {}, ""});
-	}
-
+void
+run_command(int run_in_background)
+{
 	if (run_in_background)
-		command.run(Command::RunIn::Background);
-	else
-		command.run(Command::RunIn::Foreground);
+                command.run(Command::RunIn::Background);
+        else
+                command.run(Command::RunIn::Foreground);
 }
 
 %}
@@ -126,9 +116,9 @@ execute_command(std::vector<std::string>* s_chain, int run_in_background)
 
 stmt	: /* Empty */	{ $$ = create_s_list(); }
 	| stmt argument { $$ = append_s_list($1, $2); }
-	| stmt '|' { $$ = append_s_list($$, "|"); }
-	| stmt '\n' { execute_command($1, 0); YYACCEPT; }
-        | stmt '&' '\n' { execute_command($1, 1); YYACCEPT; }
+	| stmt '|' { add_command($1); $$ = create_s_list(); }
+	| stmt '&' '\n' { add_command($1); run_command(1); YYACCEPT; }
+	| stmt '\n' { add_command($1); run_command(0); YYACCEPT; }
 	;
 
 argument: TOK_Word { $$ = $1; }
