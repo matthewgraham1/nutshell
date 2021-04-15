@@ -171,19 +171,12 @@ int Command::run(Node& command_node, int read_from, int write_to)
         }
         return 0;
     }
-    expand_tilda_if_at_beginning(command_node.name);
-    //normalize_path_if_needed(command_node.name);
-    for (auto& arg : command_node.arguments) {
-        expand_tilda_if_at_beginning(arg);
-        //normalize_path_if_needed(arg);
-    }
+
     auto builtin_res = BuiltinCommandTable::the().get(command_node.name);
     if (builtin_res == BuiltinCommandTable::the().internal_table().end()) [[likely]] {
         std::string full_path;
         if (command_node.name.length() && command_node.name[0] != '/') {
             for (auto dir : m_path) {
-                expand_tilda_if_at_beginning(dir);
-                //normalize_path_if_needed(dir);
                 full_path.append(dir);
                 full_path.push_back('/');
                 full_path.append(command_node.name);
