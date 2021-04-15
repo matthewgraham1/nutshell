@@ -77,10 +77,10 @@ void expand_tilda_if_at_beginning(std::string& path)
 
 bool is_glob(const std::string& word)
 {
-for (auto c : word) {
-if (c == '*' || c == '?') {
-return true;
-}
+    for (auto c : word) {
+        if (c == '*' || c == '?') {
+            return true;
+    }
 }
 return false;
 }
@@ -100,42 +100,42 @@ bool match_glob_if_exists(const std::string& word)
 	bool glob_found = false;
 	for (char c : word) {
 	    if (c == '*' || c == '?') {
-		glob_found = true;
-		glob.append(dir_name);
-		glob.push_back(c);
-		dir_name.clear();
-		continue;
+            glob_found = true;
+            glob.append(dir_name);
+            glob.push_back(c);
+            dir_name.clear();
+            continue;
 	    }
 	    
 	    if (glob_found) {
-		if (c == '/') {
-		    break;
-		}
-		glob.push_back(c);
+            if (c == '/') {
+                break;
+            }
+            glob.push_back(c);
 	    }
 		    
 	    if (c == '/') {
 	        parent_directory.push_back(c);
-		parent_directory.append(dir_name);
-		dir_name.clear();
-		continue;
+            parent_directory.append(dir_name);
+            dir_name.clear();
+            continue;
 	    }
 	    dir_name.push_back(c);
 	}
     } else {
-	glob = word;
-	char cwd[1024];
-	getcwd(cwd, 1024);
-	parent_directory = cwd;
+        glob = word;
+        char cwd[1024];
+        getcwd(cwd, 1024);
+        parent_directory = cwd;
     }
     bool matched_at_least_one = false;
     for (auto& file : std::filesystem::directory_iterator(parent_directory)) {
         printf("Current file to be checked against %s: %s\n", glob.c_str(), file.path().filename().c_str());
-	if (!fnmatch(glob.c_str(), file.path().filename().c_str(), 0)) {
-	    unput_string(file.path());
-	    unput(' ');
-	    matched_at_least_one = true;
-	}
+        if (!fnmatch(glob.c_str(), file.path().filename().c_str(), 0)) {
+            unput_string(file.path());
+            unput(' ');
+            matched_at_least_one = true;
+        }
     }
     return matched_at_least_one;
 }
@@ -148,8 +148,8 @@ bool match_glob_if_exists(const std::string& word)
 
 %%
 
-[&<>|] { word_count = 0; return *yytext; }
-[\n] { return *yytext; }
+[&<>|] { word_count = 1; return *yytext; }
+[\n] { word_count = 1; line_count++; return *yytext; }
 
 <*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
@@ -162,13 +162,13 @@ bool match_glob_if_exists(const std::string& word)
     normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
     yyword = std::move(yyword_builder);
     if (!match_glob_if_exists(yyword)) {
-	auto alias = AliasTable::the().get(yyword);
-	if (word_count == 1 && alias != yyword) {
-	    unput_string(alias);
-	} else {
-	    ++word_count;
-	    return TOK_Word;
-	}
+        auto alias = AliasTable::the().get(yyword);
+        if (word_count == 1 && alias != yyword) {
+            unput_string(alias);
+        } else {
+            ++word_count;
+            return TOK_Word;
+        }
     }
 }
 <STRING>. { yyword_builder.push_back(*yytext); }
@@ -183,7 +183,6 @@ bool match_glob_if_exists(const std::string& word)
     normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
 
-    //printf("%s\n", yyword.c_str());
   if (!match_glob_if_exists(yyword)) {
     auto alias = AliasTable::the().get(yyword);
     if (word_count == 1 && alias != yyword) {
@@ -191,9 +190,7 @@ bool match_glob_if_exists(const std::string& word)
     } else {
       ++word_count;
       yylval.string = &yyword;
-	return TOK_Word;
-        ++word_count;
-        return TOK_Word;
+      return TOK_Word;
     }
   }
 }
