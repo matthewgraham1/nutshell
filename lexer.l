@@ -29,7 +29,7 @@ void unput_string(const std::string& str)
     for (int i = str.length() - 1; i >= 0; i--)
 	    unput(str[i]);
 }
-
+/*
 void normalize_path_if_needed(std::string& path)
 {
     if (!path.length()) {
@@ -50,7 +50,7 @@ void normalize_path_if_needed(std::string& path)
     resolved_path.append(path);
     path = std::filesystem::path(std::move(resolved_path)).lexically_normal();
 }
-
+*/
 void expand_tilda_if_at_beginning(std::string& path)
 {
     std::string substring;
@@ -164,7 +164,7 @@ bool match_glob_if_exists(const std::string& word)
 <STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
 <STRING>\" {
     BEGIN 0;
-    normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
+    //normalize_path_if_needed(yyword_builder); // Should quoted dots be expanded? Tilda isn't supposed to be.
     yyword = std::move(yyword_builder);
     if (!match_glob_if_exists(yyword)) {
         auto alias = AliasTable::the().get(yyword);
@@ -184,8 +184,8 @@ bool match_glob_if_exists(const std::string& word)
 <WORD>[ \t\n|<>&"] {
     BEGIN 0;
     yyless(0);
-    expand_tilda_if_at_beginning(yyword_builder);
-    normalize_path_if_needed(yyword_builder);
+    //expand_tilda_if_at_beginning(yyword_builder);
+    //normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
 
   if (!match_glob_if_exists(yyword)) {
