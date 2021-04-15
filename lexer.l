@@ -158,7 +158,7 @@ bool match_glob_if_exists(const std::string& word)
 
 <*><<EOF>> { fprintf(stderr, "Unexpected end of file!\n"); }
 <*>\$\{ { yy_push_state(VARIABLE); }
-
+<*>\\\$ { yyword_builder.push_back('$'); }
 \" { BEGIN STRING; }
 <STRING>\\\" { yyword_builder.push_back('"'); }
 <STRING>\n { fprintf(stderr, "Unterminated quote!\n"); BEGIN 0; yyword_builder.clear(); ++line_count; return '\n'; /* How should an unterminated quote be punished if at all? */ }
