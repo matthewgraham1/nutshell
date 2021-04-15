@@ -117,7 +117,6 @@ add_command_with_io_redirection(std::vector<std::string>* s_list, std::vector<st
         {
 		std::string destination = "&";
                 destination.append((*io_info)[1]);
-                std::cout << destination << '\n';
 		command.add_command({ called_command, arguments, {{called_command, destination, false}}, ""});
         }
 	else if ((*io_info)[0] == "<")
