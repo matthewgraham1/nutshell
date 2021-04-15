@@ -315,15 +315,15 @@ BuiltinCommandTable::BuiltinCommandTable()
     m_builtin_table.insert({ string("alias"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 0 && arguments.size() != 2) {
                 fprintf(stderr, "alias: takes either 0 or 2 args\n");
-                return 1;
+                exit(1);
             }
             AliasTable::the().print();
-            return 0;
+            exit(0);
         } });
 
     m_builtin_table.insert({ string("printenv"), [](const vector<std::string>& arguments) {
             EnvTable::the().print();
-            return 0;
+            exit(0);
         } });
 
 };
