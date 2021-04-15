@@ -901,7 +901,7 @@ case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
 #line 152 "lexer.l"
-{ return *yytext; /*yyterminate();*/ }
+{ return *yytext; }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(STRING):

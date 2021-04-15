@@ -119,7 +119,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
     if (command_node.name == "setenv") { // this is all terrible but I am short on time
         if (command_node.arguments.size() != 2) {
             fprintf(stderr, "setenv: takes 2 arguments\n");
-            exit(1);
+            return 1;
         }
         EnvTable::the().set(command_node.arguments[0], command_node.arguments[1]);
         if (command_node.arguments[0] == "PATH")
@@ -199,7 +199,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
     if (!pid) {
         if (command_node.output.size() > 2) {
             fprintf(stderr, "Adding more than two redirections in a command block is pointless!\n");
-            exit(1);
+            return 1;
         }
 
         // Beware ye who enter
@@ -214,12 +214,12 @@ int Command::run(Node& command_node, int read_from, int write_to)
                     from_fd = output.from[0] - '0';
                 } else if (output.from.length()) {
                     fprintf(stderr, "Shell error: must either have 1, 2, or nothing before '>' token.\n");
-                    exit(1);
+                    return 1;
                 }
                 int to_fd = 1;
                 if (!output.to.length()) [[unlikely]] {
                     fprintf(stderr, "shell error: must direct output to something\n");
-                    exit(1);
+                    return 1;
                 }
                 if (output.to.length() == 2 && output.to[0] == '&' && (output.to[1] == '1' || output.to[1] == '2')) {
                     to_fd = output.to[1] - '0';
@@ -239,7 +239,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
                     FILE* file_fd = fopen(output.to.c_str(), output.append ? "a" : "w");
                     if (!file_fd) {
                         perror("fopen");
-                        exit(1);
+                        return 1;
                     }
                     //chown(output.to.c_str(), getuid(), -1);
                     if (has_set_2_to_1) {
@@ -269,7 +269,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
                 read_from = open(command_node.input_file.c_str(), O_RDONLY);
                 if (read_from < 0) {
                     perror("open");
-                    exit(1);
+                    return 1;
                 }
             }
         }
@@ -295,7 +295,7 @@ int Command::run(Node& command_node, int read_from, int write_to)
         }
         execv(command_node.name.c_str(), arguments);
         perror("execv");
-        exit(1);
+        return 1;
     }
     if (read_from != 0)
         close(read_from);
@@ -315,15 +315,15 @@ BuiltinCommandTable::BuiltinCommandTable()
     m_builtin_table.insert({ string("alias"), [](const vector<std::string>& arguments) {
             if (arguments.size() != 0 && arguments.size() != 2) {
                 fprintf(stderr, "alias: takes either 0 or 2 args\n");
-                exit(1);
+                return 1;
             }
             AliasTable::the().print();
-            exit(0);
+            return 0;
         } });
 
     m_builtin_table.insert({ string("printenv"), [](const vector<std::string>& arguments) {
             EnvTable::the().print();
-            exit(0);
+            return 0;
         } });
 
 };

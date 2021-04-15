@@ -17,7 +17,8 @@ nutshell()
 	str.append(getenv("USER"));
 	while (1) {
 		printf("%s$ ", str.c_str());
-		std::cout << yyparse() << "\n";
+		yyparse();
+		std::cout << "\n";
 	}
 }
 
