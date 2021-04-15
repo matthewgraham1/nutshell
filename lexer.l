@@ -184,7 +184,7 @@ bool match_glob_if_exists(const std::string& word)
 <WORD>[ \t\n|<>&"] {
     BEGIN 0;
     yyless(0);
-    //expand_tilda_if_at_beginning(yyword_builder);
+    expand_tilda_if_at_beginning(yyword_builder);
     //normalize_path_if_needed(yyword_builder);
     yyword = std::move(yyword_builder);
 
