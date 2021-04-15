@@ -18,7 +18,8 @@ yywrap(void)
 void
 yyerror(const char* s)
 {
-	fprintf(stderr, "%s\n", *s);
+	fprintf(stderr, "%s\n", s);
+	fprintf(stderr, "%s$ ", getenv("USER"));
 }
 
 std::vector<std::string>*
@@ -166,7 +167,7 @@ stmt	: /* Empty */	{ $$ = create_s_list(); }
 	| stmt '|' { add_command($1); $$ = create_s_list(); }
 	| stmt '&' '\n' { add_command($1); run_command(1); YYACCEPT; }
 	| stmt '\n' { add_command($1); run_command(0); YYACCEPT; }
-	| error '\n' { yyerrok; }
+	| stmt error '\n' { yyerrok; yyclearin; }
 	;
 
 io_redirect	: TOK_GreatGreat argument { $$ = create_s_list(); append_s_list($$, ">>"); append_s_list($$, $2); }
@@ -174,7 +175,6 @@ io_redirect	: TOK_GreatGreat argument { $$ = create_s_list(); append_s_list($$, 
 		| TOK_GreatGreatAmpersand argument { $$ = create_s_list(); append_s_list($$, ">>&"); append_s_list($$, $2); }
 		| TOK_GreatAmpersand argument { $$ = create_s_list(); append_s_list($$, ">&"); append_s_list($$, $2); }
 		| TOK_Less argument { $$ = create_s_list(); append_s_list($$, "<"); append_s_list($$, $2); }
-		| TOK_GreatGreat error '\n' { yyerrok; }
 		;
 
 argument: TOK_Word { $$ = $1; }
