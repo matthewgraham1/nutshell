@@ -38,7 +38,7 @@ void Command::expand_PATH()
     std::string dir;
     for (auto c : EnvTable::the().get("PATH")) {
         if (c == ':') {
-            normalize_path_if_needed(dir);
+            //normalize_path_if_needed(dir);
             expand_tilda_if_at_beginning(dir);
             if (dir[dir.length() - 1] != '/')
                 dir.push_back('/');
@@ -175,7 +175,8 @@ int Command::run(Node& command_node, int read_from, int write_to)
     if (builtin_res == BuiltinCommandTable::the().internal_table().end()) [[likely]] {
         std::string full_path;
         if (command_node.name.length() && command_node.name[0] != '/') {
-            for (auto& dir : m_path) {
+            for (auto dir : m_path) {
+                normalize_path_if_needed(dir);
                 full_path.append(dir);
                 full_path.append(command_node.name);
                 if (!file_exists(full_path)) {
