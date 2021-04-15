@@ -85,6 +85,42 @@ run_command(int run_in_background)
                 command.run(Command::RunIn::Foreground);
 }
 
+
+void
+add_command_with_io_redirection(std::vector<std::string>* s_list, std::vector<std::string>* io_info)
+{
+	std::cout << "Statement:\n";
+	print_s_list(s_list);
+	std::cout << "IO Info:\n";
+	print_s_list(io_info);
+
+	std::string called_command = (*s_list)[0];
+        std::vector<std::string> arguments;
+        //Wildcard scanning
+	for (int i = 1; i < s_list->size(); ++i) arguments.push_back((*s_list)[i]);
+
+	if ((*io_info)[0] == ">")
+	{
+		command.add_command({ called_command, arguments, {{"1", (*io_info)[1], false}}, ""});
+	}
+	else if ((*io_info)[0] == ">>")
+	{
+		command.add_command({ called_command, arguments, {{"1", (*io_info)[1], true}}, ""});
+	}
+	else if ((*io_info)[0] == ">>&")
+	{
+		command.add_command({ called_command, arguments, {{called_command, (*io_info)[1], true}}, ""});
+	}
+	else if ((*io_info)[0] == ">&")
+        {
+                command.add_command({ called_command, arguments, {{called_command, (*io_info)[1], false}}, ""});
+        }
+	else if ((*io_info)[0] == "<")
+        {
+                command.add_command({ called_command, arguments, {}, (*io_info)[1]});
+        }
+}
+
 %}
 
 %union 
@@ -106,20 +142,36 @@ run_command(int run_in_background)
 %token <string> TOK_EnvClose
 %token <string> TOK_Newline
 %token <string> TOK_Whitespace
+%token <string> TOK_Great
+%token <string> TOK_GreatGreat
+%token <string> TOK_GreatGreatAmpersand
+%token <string> TOK_GreatAmpersand
+%token <string> TOK_Less
 
 %token <int_t> TOK_END
 
 %nterm <string> argument
 %nterm <vector> stmt
+%nterm <vector> io_redirect
 
 %%
 
 stmt	: /* Empty */	{ $$ = create_s_list(); }
+	| stmt io_redirect { add_command_with_io_redirection($1, $2); $$ = create_s_list(); }
 	| stmt argument { $$ = append_s_list($1, $2); }
 	| stmt '|' { add_command($1); $$ = create_s_list(); }
 	| stmt '&' '\n' { add_command($1); run_command(1); YYACCEPT; }
 	| stmt '\n' { add_command($1); run_command(0); YYACCEPT; }
+	| error '\n' { yyerrok; }
 	;
+
+io_redirect	: TOK_GreatGreat argument { $$ = create_s_list(); append_s_list($$, ">>"); append_s_list($$, $2); }
+		| TOK_Great argument { $$ = create_s_list(); append_s_list($$, ">"); append_s_list($$, $2); }
+		| TOK_GreatGreatAmpersand argument { $$ = create_s_list(); append_s_list($$, ">>&"); append_s_list($$, $2); }
+		| TOK_GreatAmpersand argument { $$ = create_s_list(); append_s_list($$, ">&"); append_s_list($$, $2); }
+		| TOK_Less argument { $$ = create_s_list(); append_s_list($$, "<"); append_s_list($$, $2); }
+		| TOK_GreatGreat error '\n' { yyerrok; }
+		;
 
 argument: TOK_Word { $$ = $1; }
 	;
