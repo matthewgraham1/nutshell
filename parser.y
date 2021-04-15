@@ -31,12 +31,12 @@ create_s_list(void)
 std::vector<std::string>*
 append_s_list(std::vector<std::string>* s_list, std::vector<std::string>* stmt)
 {
-        std::vector<std::string> new_s_list;
-	new_s_list.reserve(s_list->size() + stmt->size());
-        new_s_list.insert(new_s_list.end(), s_list->begin(), s_list->end());
-	new_s_list.insert(new_s_list.end(), stmt->begin(), stmt->end());
+	std::vector<std::string>* new_s_list;
+	new_s_list->reserve(s_list->size() + stmt->size());
+        new_s_list->insert(new_s_list->end(), s_list->begin(), s_list->end());
+	new_s_list->insert(new_s_list->end(), stmt->begin(), stmt->end());
 	
-        return &new_s_list;
+        return new_s_list;
 }
 
 std::vector<std::string>*
@@ -44,6 +44,13 @@ append_s_list(std::vector<std::string>* s_list, std::string* word)
 {
 	(*s_list).push_back(*word);
 	return s_list;
+}
+
+std::vector<std::string>*
+append_s_list(std::vector<std::string>* s_list, std::string word)
+{
+        (*s_list).push_back(word);
+        return s_list;
 }
 
 void
@@ -57,20 +64,35 @@ print_s_list(std::vector<std::string>* s_list)
 }
 
 void
-execute_command(std::vector<std::string>* s_list)
+execute_command(std::vector<std::string>* s_chain, int run_in_background)
 {
-	std::vector<std::string> arguments;
-	for (int i = 1; i < s_list->size(); ++i) arguments.push_back((*s_list)[i]);
+	if (!(s_chain)->size()) return;
 
 	Command command;
-	// The final string argument is if there is an input file
+
+	std::string called_command;
+	std::vector<std::string> arguments;
+	for (int j = 0; j < s_chain->size(); ++j)
+	{
+		called_command = (*s_chain)[j++];
+		arguments = {};
+
+		for (int i = j; i < s_chain->size() && (*s_chain)[i] != "|"; ++i, ++j) arguments.push_back((*s_chain)[i]);
+		//if ((*s_chain)[j] == "|") ++j;
+
+		// The final string argument is if there is an input file
 	
-	//std::cout << "Command: " << s_list->front() << "\nArguments:";
+		//std::cout << "Command: " << command << "\nArguments:";
 	
-	//print_s_list(&arguments);
+		//print_s_list(&arguments);
 	
-	command.add_command({ s_list->front(), arguments, {}, ""});
-	command.run(Command::RunIn::Background);
+		command.add_command({ called_command, arguments, {}, ""});
+	}
+
+	if (run_in_background)
+		command.run(Command::RunIn::Background);
+	else
+		command.run(Command::RunIn::Foreground);
 }
 
 %}
@@ -82,8 +104,6 @@ execute_command(std::vector<std::string>* s_list)
 	std::string *string;
 	std::vector<std::string> *vector;
 }
-
-%define parse.error verbose
 
 %token <string> TOK_Pipe
 %token <string> TOK_LeftBracket
@@ -97,19 +117,21 @@ execute_command(std::vector<std::string>* s_list)
 %token <string> TOK_Newline
 %token <string> TOK_Whitespace
 
-%token <int> TOK_END
+%token <int_t> TOK_END
 
 %nterm <string> argument
 %nterm <vector> stmt
 
 %%
 
-stmt	: argument { $$ = create_s_list(); $$ = append_s_list($$, $1); }
+stmt	: /* Empty */	{ $$ = create_s_list(); }
 	| stmt argument { $$ = append_s_list($1, $2); }
-	| stmt '\n' { execute_command($1); YYACCEPT; }
+	| stmt '|' { $$ = append_s_list($$, "|"); }
+	| stmt '\n' { execute_command($1, 0); YYACCEPT; }
+        | stmt '&' '\n' { execute_command($1, 1); YYACCEPT; }
 	;
 
-argument: TOK_Word
+argument: TOK_Word { $$ = $1; }
 	;
 
 %%
