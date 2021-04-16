@@ -1,0 +1,26 @@
+https://github.com/matthewgraham1/nutshell
+
+* Featured not implemented:
+Error messages per line number if reading from a file (If this is specified in the assignment, I can't find it)
+Builtin error output is awkward. The only builtins that can have its IO redirected is 'printenv' and 'alias' without args. The others only output when they encounter errors but those errors may be of interest, but alas their output cannot be messed with.
+Does not intelligently handle infinitely recursive alias expansion.
+The parser may be a bit buggy so the best way to test the features is through the use of the Command class, which chains together commands and runs them.
+
+* Features by contribution:
+
+** Matthew Graham
+Lexer for tokenizing words and metacharacters. Backslashed metacharacters are properly treated as parts of a word.
+Environment expansion except when '${}' is preceeded by a backslash, ex. '\${PATH}' would just be the word '${PATH}'
+Alias expansion on the first word.
+IO redirection, like 'command 2>&1 < command2'
+Piping, works with IO redirection, like 'command 2>&1 < command2 | comm3 > file'
+Non-builtin command running: Commands are run with a command chaining class I wrote which also handles the piping and io redirection. Class is poorly named 'Command.'
+Runs Non-builtin commands in foreground or background
+Tilda expansion
+Wildcard matching
+All of the builtins
+PATH resolution of commands to execute
+
+* Brian Barker
+Parser
+Modifications to Lexer
