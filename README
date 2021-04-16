@@ -4,7 +4,7 @@ https://github.com/matthewgraham1/nutshell
 Error messages per line number if reading from a file (If this is specified in the assignment, I can't find it)
 Builtin error output is awkward. The only builtins that can have its IO redirected is 'printenv' and 'alias' without args. The others only output when they encounter errors but those errors may be of interest, but alas their output cannot be messed with.
 Does not intelligently handle infinitely recursive alias expansion.
-The parser may be a bit buggy so the best way to test the features is through the use of the Command class, which chains together commands and runs them.
+The parser is mostly functional. "2>&1" syntax does not work, but the Command object is able to do it.
 
 * Features by contribution:
 
@@ -24,3 +24,4 @@ PATH resolution of commands to execute
 * Brian Barker
 Parser
 Modifications to Lexer
+Modifications to Command object
