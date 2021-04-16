@@ -19,10 +19,6 @@
 using std::vector;
 using std::string;
 
-void Command::create_pipe_between(const Node&, const Node&)
-{
-}
-
 void Command::add_command(const Node& command)
 {
     m_commands.push_back(command);

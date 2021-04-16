@@ -26,7 +26,6 @@ public:
         Foreground,
     };
     int run(RunIn);
-    void create_pipe_between(const Node&, const Node&);
 private:
     int run(Node&, int from, int to);
     void expand_PATH();
